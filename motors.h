@@ -4,8 +4,8 @@
 AF_DCMotor motorR(3, MOTOR12_1KHZ); // Set motor #1, 1kHz PWM
 AF_DCMotor motorL(4, MOTOR12_1KHZ); // Set motor #2, 1kHz PWM
 
-const uint8_t spdBoost = 0;
-const uint8_t turnTime = 0;
+const uint8_t spdBoost = 150;
+const uint8_t turnTime = 100;
 
 void MotorsInit() {
   //pinMode(leftMotorPinA, OUTPUT);
