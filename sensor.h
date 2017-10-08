@@ -20,7 +20,7 @@ long SensorDistance() {
   long pulseWidth = pulseIn(rPin, HIGH);
 
   // Calculate distance
-  long distance = (pulseWidth/29.1) / 2;
+  long distance = (pulseWidth / 29.1) / 2;
 
   return distance;
 }
