@@ -8,10 +8,5 @@ void ButtonInit() {
 }
 
 bool ButtonPress() {
-  if (digitalRead(buttonPin) == LOW) {
-    return true;
-  }
-  else {
-    return false;
-  }
+  return (digitalRead(buttonPin) == LOW);
 }

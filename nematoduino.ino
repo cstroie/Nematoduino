@@ -59,48 +59,37 @@ void StatesInit() {
 }
 
 void SetCurrState(uint16_t N_ID, int8_t val) {
-  if (N_ID < N_MAX) {
+  if (N_ID < N_MAX)
     CurrConnectedState[N_ID] = val;
-  }
-  else {
+  else
     CurrMuscleState[N_ID - N_MAX] = val;
-  }
 }
 
 int16_t GetCurrState(uint16_t N_ID) {
-  if (N_ID < N_MAX) {
+  if (N_ID < N_MAX)
     return CurrConnectedState[N_ID];
-  }
-  else {
+  else
     return CurrMuscleState[N_ID - N_MAX];
-  }
 }
 
 void SetNextState(uint16_t N_ID, int16_t val) {
   if (N_ID < N_MAX) {
-    if (val > 127) {
+    if (val > 127)
       NextConnectedState[N_ID] = 127;
-    }
-    else if (val < -128) {
+    else if (val < -128)
       NextConnectedState[N_ID] = -128;
-    }
-    else {
+    else
       NextConnectedState[N_ID] = val;
-    }
-
   }
-  else {
+  else
     NextMuscleState[N_ID - N_MAX] = val;
-  }
 }
 
 int16_t GetNextState(uint16_t N_ID) {
-  if (N_ID < N_MAX) {
+  if (N_ID < N_MAX)
     return NextConnectedState[N_ID];
-  }
-  else {
+  else
     return NextMuscleState[N_ID - N_MAX];
-  }
 }
 
 void AddToNextState(uint16_t N_ID, int8_t val) {
@@ -138,9 +127,6 @@ NeuralConnection ParseROM(uint16_t romWord) {
 void PingNeuron(uint16_t N_ID) {
   uint16_t address = pgm_read_word_near(NeuralROM + N_ID + 1);
   uint16_t len = pgm_read_word_near(NeuralROM + N_ID + 1 + 1) - pgm_read_word_near(NeuralROM + N_ID + 1);
-
-  Serial.println(len);
-
   for (int i = 0; i < len; i++) {
     NeuralConnection neuralConn = ParseROM(pgm_read_word_near(NeuralROM + address + i));
     AddToNextState(neuralConn.id, neuralConn.weight);
@@ -154,12 +140,8 @@ void DischargeNeuron(uint16_t N_ID) {
 
 // Complete one cycle ('tick') of the nematode neural system
 void NeuralCycle() {
-  for (int i = 0; i < N_MAX; i++) {
-    if (GetCurrState(i) > N_THRESHOLD) {
-      DischargeNeuron(i);
-    }
-  }
-
+  for (int i = 0; i < N_MAX; i++)
+    if (GetCurrState(i) > N_THRESHOLD) DischargeNeuron(i);
   ActivateMuscles();
   HandleIdleNeurons();
   CopyStates();
@@ -187,18 +169,14 @@ void ActivateMuscles() {
 
   // Gather totals on left and right side muscles
   for (int i = 0; i < N_NBODYMUSCLES; i++) {
-    uint16_t leftId = pgm_read_word_near(LeftBodyMuscles + i);
+    uint16_t leftId  = pgm_read_word_near(LeftBodyMuscles + i);
     uint16_t rightId = pgm_read_word_near(RightBodyMuscles + i);
 
-    int16_t leftVal = GetNextState(leftId);
+    int16_t leftVal  = GetNextState(leftId);
     int16_t rightVal = GetNextState(rightId);
 
-    if (leftVal < 0) {
-      leftVal = 0;
-    }
-    if (rightVal < 0) {
-      rightVal = 0;
-    }
+    if (leftVal < 0)  leftVal = 0;
+    if (rightVal < 0) rightVal = 0;
 
     bodyTotal += (leftVal + rightVal);
 
@@ -207,35 +185,26 @@ void ActivateMuscles() {
   }
 
   // Gather total for neck muscles
-  int32_t leftNeckTotal = 0;
+  int32_t leftNeckTotal  = 0;
   int32_t rightNeckTotal = 0;
   for (int i = 0; i < N_NNECKMUSCLES; i++) {
-    //uint16_t leftId = LeftBodyMuscles[i];
-    //uint16_t rightId = RightBodyMuscles[i];
 
-    uint16_t leftId = pgm_read_word_near(LeftNeckMuscles + i);
+    uint16_t leftId  = pgm_read_word_near(LeftNeckMuscles + i);
     uint16_t rightId = pgm_read_word_near(RightNeckMuscles + i);
 
-    int16_t leftVal = GetNextState(leftId);
+    int16_t leftVal  = GetNextState(leftId);
     int16_t rightVal = GetNextState(rightId);
 
-    if (leftVal < 0) {
-      leftVal = 0;
-    }
-    if (rightVal < 0) {
-      rightVal = 0;
-    }
+    if (leftVal < 0)  leftVal = 0;
+    if (rightVal < 0) rightVal = 0;
 
-    leftNeckTotal += leftVal;
+    leftNeckTotal  += leftVal;
     rightNeckTotal += rightVal;
 
     SetNextState(leftId, 0.0);
     SetNextState(rightId, 0.0);
   }
-
-
   int32_t normBodyTotal = 255.0 * ((float) bodyTotal) / 600.0;
-  Serial.println(normBodyTotal);
 
   // Log A and B type motor neuron activity
   float motorNeuronASum = 0.0;
@@ -243,37 +212,28 @@ void ActivateMuscles() {
 
   for (int i = 0; i < N_SIGMOTORB; i++) {
     uint8_t motorBId = pgm_read_word_near(SigMotorNeuronsB + i);
-    if (GetCurrState(motorBId) > N_THRESHOLD) {
+    if (GetCurrState(motorBId) > N_THRESHOLD)
       motorNeuronBSum += 1;
-    }
   }
 
   for (int i = 0; i < N_SIGMOTORA; i++) {
     uint8_t motorAId = pgm_read_word_near(SigMotorNeuronsA + i);
-    if (GetCurrState(motorAId) > N_THRESHOLD) {
+    if (GetCurrState(motorAId) > N_THRESHOLD)
       motorNeuronASum += 1;
-    }
   }
 
   // Sum (with weights) and add contribution to running average of significant activity
-  float motorNeuronSumTotal = (-1 * motorNeuronASum) + motorNeuronBSum;
+  float motorNeuronSumTotal = motorNeuronBSum - motorNeuronASum;
 
   SigMotorNeuronAvg = (motorNeuronSumTotal + (5.0 * SigMotorNeuronAvg)) / (5.0 + 1.0);
 
   // Set left and right totals, scale neck muscle contribution
-  int32_t leftTotal = (4 * leftNeckTotal) + normBodyTotal;
+  int32_t leftTotal  = (4 * leftNeckTotal)  + normBodyTotal;
   int32_t rightTotal = (4 * rightNeckTotal) + normBodyTotal;
 
-  Serial.println(4*leftNeckTotal);
-  Serial.println(4*rightNeckTotal);
-  Serial.println();
-
-  if (SigMotorNeuronAvg < 0.42) { // Magic number read off from c_matoduino simulation
-    RunMotors(-1 * rightTotal, -1 * leftTotal);
-  }
-  else {
-    RunMotors(rightTotal, leftTotal);
-  }
+  // Magic number read off from c_matoduino simulation
+  if (SigMotorNeuronAvg < 0.42) RunMotors(-rightTotal, -leftTotal);
+  else                          RunMotors( rightTotal,  leftTotal);
   delay(100);
 }
 
@@ -284,8 +244,8 @@ void ActivateMuscles() {
 void setup() {
   // put your setup code here, to run once:
 
-  //Uncomment for serial debugging
-  Serial.begin(9600);
+  // Uncomment for serial debugging
+  //Serial.begin(9600);
 
   // initialize state arrays
   StatesInit();
@@ -314,10 +274,9 @@ void loop() {
   // put your main code here, to run repeatedly:
   long dist = SensorDistance();
 
-  if (dist < 25.0) {
+  if (dist < 25) {
     // Status LED on
     StatusLedOn();
-
     // Nose touch neurons
     PingNeuron(N_FLPR);
     PingNeuron(N_FLPL);
@@ -334,7 +293,6 @@ void loop() {
   else {
     // Status LED off
     StatusLedOff();
-
     // Chemotaxis neurons
     PingNeuron(N_ADFL);
     PingNeuron(N_ADFR);
