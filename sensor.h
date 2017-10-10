@@ -1,27 +1,18 @@
-// Reference: http://www.instructables.com/id/Simple-Arduino-and-HC-SR04-Example/
+#ifndef newping_h
+#define newping_h
 
 #include "pin_config.h"
+#include <NewPing.h>
+
+// NewPing setup of pins and maximum distance.
+NewPing sonar(tPin, rPin, 100);
+
 
 void SensorInit() {
-  pinMode(tPin, OUTPUT);
-  pinMode(rPin, INPUT);
 }
 
 long SensorDistance() {
-
-  // Send sound pulse
-  digitalWrite(tPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(tPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(tPin, LOW);
-
-  // Read off length
-  long pulseWidth = pulseIn(rPin, HIGH);
-
-  // Calculate distance
-  long distance = (pulseWidth / 29.1) / 2;
-
-  return distance;
+  return sonar.ping_cm();
 }
 
+#endif
