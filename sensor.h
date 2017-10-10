@@ -11,8 +11,11 @@ NewPing sonar(tPin, rPin, 100);
 void SensorInit() {
 }
 
-long SensorDistance() {
-  return sonar.ping_cm();
+int SensorDistance() {
+  int dist = (int)sonar.ping_cm();
+  // Use a larger distance if the sensor is missing
+  if (dist == 0) dist = 1000;
+  return dist;
 }
 
 #endif
