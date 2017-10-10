@@ -18,7 +18,9 @@
 uint16_t const N_MAX = (uint16_t)NeuralROM[0];
 
 // Running average of activity for 'significant' motor neurons
-float SigMotorNeuronAvg = 1.0;
+int16_t SigMotorNeuronAvg = 0;
+int16_t RightMotorAvg = 0;
+int16_t LeftMotorAvg = 0;
 
 //
 // Structs
@@ -59,37 +61,30 @@ void StatesInit() {
 }
 
 void SetCurrState(uint16_t N_ID, int8_t val) {
-  if (N_ID < N_MAX)
-    CurrConnectedState[N_ID] = val;
-  else
-    CurrMuscleState[N_ID - N_MAX] = val;
+  if (N_ID < N_MAX) CurrConnectedState[N_ID] = val;       // Neuron connection
+  else              CurrMuscleState[N_ID - N_MAX] = val;  // Muscle connection
 }
 
 int16_t GetCurrState(uint16_t N_ID) {
-  if (N_ID < N_MAX)
-    return CurrConnectedState[N_ID];
-  else
-    return CurrMuscleState[N_ID - N_MAX];
+  if (N_ID < N_MAX) return CurrConnectedState[N_ID];      // Neuron connection
+  else              return CurrMuscleState[N_ID - N_MAX]; // Muscle connection
 }
 
 void SetNextState(uint16_t N_ID, int16_t val) {
+  // Neuron connection
   if (N_ID < N_MAX) {
-    if (val > 127)
-      NextConnectedState[N_ID] = 127;
-    else if (val < -128)
-      NextConnectedState[N_ID] = -128;
-    else
-      NextConnectedState[N_ID] = val;
+    if (val > 127)        NextConnectedState[N_ID] = 127;   // Upper limit
+    else if (val < -128)  NextConnectedState[N_ID] = -128;  // Lower limit
+    else                  NextConnectedState[N_ID] = val;   // Use the specified value
   }
   else
+    // Muscle connection
     NextMuscleState[N_ID - N_MAX] = val;
 }
 
 int16_t GetNextState(uint16_t N_ID) {
-  if (N_ID < N_MAX)
-    return NextConnectedState[N_ID];
-  else
-    return NextMuscleState[N_ID - N_MAX];
+  if (N_ID < N_MAX) return NextConnectedState[N_ID];        // Neuron connection
+  else              return NextMuscleState[N_ID - N_MAX];   // Muscle connection
 }
 
 void AddToNextState(uint16_t N_ID, int8_t val) {
@@ -100,7 +95,7 @@ void AddToNextState(uint16_t N_ID, int8_t val) {
 // Copy 'next' state into 'current' state
 void CopyStates() {
   memcpy(CurrConnectedState, NextConnectedState, sizeof(NextConnectedState));
-  memcpy(CurrMuscleState, NextMuscleState, (N_NTOTAL - N_MAX)*sizeof(NextMuscleState[0]));
+  memcpy(CurrMuscleState,    NextMuscleState,    sizeof(NextMuscleState[0]) * (N_NTOTAL - N_MAX));
 }
 
 //
@@ -112,14 +107,16 @@ NeuralConnection ParseROM(uint16_t romWord) {
   uint8_t* romByte;
   romByte = (uint8_t*)&romWord;
 
+  // The id requires 9 bits
   uint16_t id = romByte[1] + ((romByte[0] & 0b10000000) << 1);
 
+  // The weight can be negative
   uint8_t weightBits = romByte[0] & 0b01111111;
   weightBits = weightBits + ((weightBits & 0b01000000) << 1);
   int8_t weight = (int8_t)weightBits;
 
+  // Return one struct
   NeuralConnection neuralConn = {id, weight};
-
   return neuralConn;
 }
 
@@ -169,46 +166,55 @@ void ActivateMuscles() {
 
   // Gather totals on left and right side muscles
   for (int i = 0; i < N_NBODYMUSCLES; i++) {
-    uint16_t leftId  = pgm_read_word_near(LeftBodyMuscles + i);
+    // Get the motoneuron
+    uint16_t leftId  = pgm_read_word_near(LeftBodyMuscles  + i);
     uint16_t rightId = pgm_read_word_near(RightBodyMuscles + i);
-
+    // Get the value
     int16_t leftVal  = GetNextState(leftId);
     int16_t rightVal = GetNextState(rightId);
-
-    if (leftVal < 0)  leftVal = 0;
-    if (rightVal < 0) rightVal = 0;
-
+    // Only positive states
+    //if (leftVal < 0)  leftVal  = 0;
+    //if (rightVal < 0) rightVal = 0;
+    // Get a grand total
     bodyTotal += (leftVal + rightVal);
-
-    SetNextState(leftId, 0.0);
-    SetNextState(rightId, 0.0);
+    // Reset the motoneuron
+    SetNextState(leftId,  0);
+    SetNextState(rightId, 0);
   }
 
   // Gather total for neck muscles
   int32_t leftNeckTotal  = 0;
   int32_t rightNeckTotal = 0;
   for (int i = 0; i < N_NNECKMUSCLES; i++) {
-
-    uint16_t leftId  = pgm_read_word_near(LeftNeckMuscles + i);
+    // Get the motoneuron
+    uint16_t leftId  = pgm_read_word_near(LeftNeckMuscles  + i);
     uint16_t rightId = pgm_read_word_near(RightNeckMuscles + i);
-
+    // Get the value
     int16_t leftVal  = GetNextState(leftId);
     int16_t rightVal = GetNextState(rightId);
-
-    if (leftVal < 0)  leftVal = 0;
-    if (rightVal < 0) rightVal = 0;
-
+    // Only positive states
+    //if (leftVal < 0)  leftVal  = 0;
+    //if (rightVal < 0) rightVal = 0;
+    // Get grand totals
     leftNeckTotal  += leftVal;
     rightNeckTotal += rightVal;
-
-    SetNextState(leftId, 0.0);
-    SetNextState(rightId, 0.0);
+    // Reset the motoneuron
+    SetNextState(leftId,  0);
+    SetNextState(rightId, 0);
   }
-  int32_t normBodyTotal = 255.0 * ((float) bodyTotal) / 600.0;
+  /*
+    Serial.print(leftNeckTotal);
+    Serial.print(",");
+    Serial.print(rightNeckTotal);
+    Serial.print(",");
+  */
+  //Serial.println(bodyTotal);
+
+  //int16_t normBodyTotal = 255.0 * ((float) bodyTotal) / 600.0;
 
   // Log A and B type motor neuron activity
-  float motorNeuronASum = 0.0;
-  float motorNeuronBSum = 0.0;
+  int16_t motorNeuronASum = 0;
+  int16_t motorNeuronBSum = 0;
 
   for (int i = 0; i < N_SIGMOTORB; i++) {
     uint8_t motorBId = pgm_read_word_near(SigMotorNeuronsB + i);
@@ -223,17 +229,37 @@ void ActivateMuscles() {
   }
 
   // Sum (with weights) and add contribution to running average of significant activity
-  float motorNeuronSumTotal = motorNeuronBSum - motorNeuronASum;
+  int16_t motorNeuronSumTotal = motorNeuronBSum - motorNeuronASum;
 
-  SigMotorNeuronAvg = (motorNeuronSumTotal + (5.0 * SigMotorNeuronAvg)) / (5.0 + 1.0);
+  SigMotorNeuronAvg = (9 * SigMotorNeuronAvg + 100 * motorNeuronSumTotal) / 10;
 
   // Set left and right totals, scale neck muscle contribution
-  int32_t leftTotal  = (4 * leftNeckTotal)  + normBodyTotal;
-  int32_t rightTotal = (4 * rightNeckTotal) + normBodyTotal;
+  //int32_t leftTotal  = (4 * leftNeckTotal)  + normBodyTotal;
+  //int32_t rightTotal = (4 * rightNeckTotal) + normBodyTotal;
+  //int16_t leftTotal  = (10 * leftNeckTotal)  + bodyTotal;
+  //int16_t rightTotal = (10 * rightNeckTotal) + bodyTotal;
+
+  RightMotorAvg  = (9 * RightMotorAvg + (10 * rightNeckTotal)  + bodyTotal) / 10;
+  LeftMotorAvg  = (9 * LeftMotorAvg + (10 * leftNeckTotal)  + bodyTotal) / 10;
+
+
+  //Serial.print(motorNeuronBSum);
+  //Serial.print(",");
+  //Serial.print(motorNeuronASum);
+  //Serial.print(",");
+  //Serial.print(LeftMotorAvg);
+  //Serial.print(",");
+  //Serial.print(RightMotorAvg);
+  //Serial.print(",");
+  //Serial.print(normBodyTotal);
+  //Serial.print(",");
+  //Serial.println(SigMotorNeuronAvg);
+
+
 
   // Magic number read off from c_matoduino simulation
-  if (SigMotorNeuronAvg < 0.42) RunMotors(-rightTotal, -leftTotal);
-  else                          RunMotors( rightTotal,  leftTotal);
+  if (SigMotorNeuronAvg < 40) RunMotors(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
+  else                        RunMotors( RightMotorAvg,  LeftMotorAvg); //RunMotors( rightTotal,  leftTotal);
   delay(100);
 }
 
@@ -245,20 +271,17 @@ void setup() {
   // put your setup code here, to run once:
 
   // Uncomment for serial debugging
-  //Serial.begin(9600);
+  //Serial.begin(115200);
+  //Serial.println(F("Nematoduino"));
 
-  // initialize state arrays
+  // Initialize state arrays
   StatesInit();
-
-  // Initialize motors
+  // Initialize the motors
   MotorsInit();
-
-  // Initialize sensor
+  // Initialize the sensor
   SensorInit();
-
   // Initialize status LED
   StatusLedInit();
-
   // Initialize button
   ButtonInit();
 
@@ -271,8 +294,21 @@ void setup() {
 }
 
 void loop() {
+  //static unsigned long noseTimeout = 5000UL;
   // put your main code here, to run repeatedly:
-  long dist = SensorDistance();
+  int16_t dist = SensorDistance();
+
+  /*
+    if (millis() > noseTimeout) {
+      if (dist == 100)
+        dist = 10;
+      else if (dist == 10)
+        dist = 1000;
+      else
+        dist = 100;
+      noseTimeout += 5000UL;
+    }
+  */
 
   if (dist < 25) {
     // Status LED on
@@ -288,7 +324,6 @@ void loop() {
     PingNeuron(N_OLQDR);
     PingNeuron(N_OLQVR);
     PingNeuron(N_OLQVL);
-    NeuralCycle();
   }
   else {
     // Status LED off
@@ -302,6 +337,6 @@ void loop() {
     PingNeuron(N_ASIR);
     PingNeuron(N_ASJR);
     PingNeuron(N_ASJL);
-    NeuralCycle();
   }
+  NeuralCycle();
 }

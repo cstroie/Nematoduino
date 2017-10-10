@@ -5,7 +5,7 @@ AF_DCMotor motR(3, MOTOR34_1KHZ); // Set motor #3, 1kHz PWM
 AF_DCMotor motL(4, MOTOR34_1KHZ); // Set motor #4, 1kHz PWM
 
 const uint8_t spdBoost = 100;
-const uint8_t turnTime = 20;
+const uint8_t turnTime = 0;
 
 void MotorsInit() {
 }
@@ -86,6 +86,7 @@ void RunMotors(int16_t leftSpd, int16_t rightSpd) {
   else
     rightMotorOff();
 
+  // Turning
   if (((rightSpd > 0) && (leftSpd < 0)) or
       ((rightSpd < 0) && (leftSpd > 0)))
     delay(turnTime);
