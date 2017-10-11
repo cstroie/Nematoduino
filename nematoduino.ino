@@ -18,7 +18,7 @@
 uint16_t const N_MAX = (uint16_t)NeuralROM[0];
 
 // Running average of activity for 'significant' motor neurons
-int16_t SigMotorNeuronAvg = 0;
+int16_t MotorNeuronAvg = 0;
 int16_t RightMotorAvg = 0;
 int16_t LeftMotorAvg = 0;
 
@@ -173,8 +173,8 @@ void ActivateMuscles() {
     int16_t leftVal  = GetNextState(leftId);
     int16_t rightVal = GetNextState(rightId);
     // Only positive states
-    //if (leftVal < 0)  leftVal  = 0;
-    //if (rightVal < 0) rightVal = 0;
+    if (leftVal < 0)  leftVal  = 0;
+    if (rightVal < 0) rightVal = 0;
     // Get a grand total
     bodyTotal += (leftVal + rightVal);
     // Reset the motoneuron
@@ -193,8 +193,8 @@ void ActivateMuscles() {
     int16_t leftVal  = GetNextState(leftId);
     int16_t rightVal = GetNextState(rightId);
     // Only positive states
-    //if (leftVal < 0)  leftVal  = 0;
-    //if (rightVal < 0) rightVal = 0;
+    if (leftVal < 0)  leftVal  = 0;
+    if (rightVal < 0) rightVal = 0;
     // Get grand totals
     leftNeckTotal  += leftVal;
     rightNeckTotal += rightVal;
@@ -231,7 +231,7 @@ void ActivateMuscles() {
   // Sum (with weights) and add contribution to running average of significant activity
   int16_t motorNeuronSumTotal = motorNeuronBSum - motorNeuronASum;
 
-  SigMotorNeuronAvg = (9 * SigMotorNeuronAvg + 100 * motorNeuronSumTotal) / 10;
+  MotorNeuronAvg = (MotorNeuronAvg + 100 * motorNeuronSumTotal) / 2;
 
   // Set left and right totals, scale neck muscle contribution
   //int32_t leftTotal  = (4 * leftNeckTotal)  + normBodyTotal;
@@ -239,28 +239,28 @@ void ActivateMuscles() {
   //int16_t leftTotal  = (10 * leftNeckTotal)  + bodyTotal;
   //int16_t rightTotal = (10 * rightNeckTotal) + bodyTotal;
 
-  RightMotorAvg  = (9 * RightMotorAvg + (10 * rightNeckTotal)  + bodyTotal) / 10;
-  LeftMotorAvg  = (9 * LeftMotorAvg + (10 * leftNeckTotal)  + bodyTotal) / 10;
+  RightMotorAvg  = (12 * RightMotorAvg + (20 * rightNeckTotal) + bodyTotal) / 15;
+  LeftMotorAvg  =  (12 * LeftMotorAvg +  (20 * leftNeckTotal)  + bodyTotal) / 15;
 
 
   //Serial.print(motorNeuronBSum);
   //Serial.print(",");
   //Serial.print(motorNeuronASum);
   //Serial.print(",");
-  //Serial.print(LeftMotorAvg);
+  Serial.print(LeftMotorAvg);
+  Serial.print(",");
+  Serial.print(RightMotorAvg);
+  Serial.print(",");
+  //Serial.print(bodyTotal);
   //Serial.print(",");
-  //Serial.print(RightMotorAvg);
-  //Serial.print(",");
-  //Serial.print(normBodyTotal);
-  //Serial.print(",");
-  //Serial.println(SigMotorNeuronAvg);
+  Serial.println(MotorNeuronAvg);
 
 
 
   // Magic number read off from c_matoduino simulation
-  if (SigMotorNeuronAvg < 40) RunMotors(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
-  else                        RunMotors( RightMotorAvg,  LeftMotorAvg); //RunMotors( rightTotal,  leftTotal);
-  delay(100);
+  if (MotorNeuronAvg < 60) RunMotors(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
+  else                     RunMotors( RightMotorAvg,  LeftMotorAvg); //RunMotors( rightTotal,  leftTotal);
+  delay(50);
 }
 
 //
@@ -271,7 +271,7 @@ void setup() {
   // put your setup code here, to run once:
 
   // Uncomment for serial debugging
-  //Serial.begin(115200);
+  Serial.begin(115200);
   //Serial.println(F("Nematoduino"));
 
   // Initialize state arrays
@@ -285,12 +285,13 @@ void setup() {
   // Initialize button
   ButtonInit();
 
-  // Loop until pressed
-  //while(true) {
-  //  if(ButtonPress()) {
-  //    break;
-  //  }
-  //}
+  // Loop until something moves ahead
+  while(true) {
+    if(SensorDistance() < 20) {
+      break;
+    }
+    delay(100);
+  }
 }
 
 void loop() {
@@ -310,7 +311,7 @@ void loop() {
     }
   */
 
-  if (dist < 25) {
+  if (dist < 40) {
     // Status LED on
     StatusLedOn();
     // Nose touch neurons

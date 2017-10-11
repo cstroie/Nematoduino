@@ -1,4 +1,4 @@
-#define N_THRESHOLD 30
+#define N_THRESHOLD 40
 
 #define N_NTOTAL 397
 
