@@ -10,6 +10,11 @@
 #include "status_led.h"
 #include "button.h"
 
+#include <Servo.h>
+Servo neck;
+int pos = 0;
+int neck_pos = 90;
+
 //
 // Global constants
 //
@@ -242,6 +247,8 @@ void ActivateMuscles() {
   RightMotorAvg  = (12 * RightMotorAvg + (20 * rightNeckTotal) + bodyTotal) / 15;
   LeftMotorAvg  =  (12 * LeftMotorAvg +  (20 * leftNeckTotal)  + bodyTotal) / 15;
 
+  neck_pos = (4 * neck_pos + rightNeckTotal - leftNeckTotal) / 5;
+  neck.write(neck_pos * 12 + 90);
 
   //Serial.print(motorNeuronBSum);
   //Serial.print(",");
@@ -285,13 +292,31 @@ void setup() {
   // Initialize button
   ButtonInit();
 
+  neck.attach(9);
+
   // Loop until something moves ahead
-  while(true) {
-    if(SensorDistance() < 20) {
+  while (true) {
+    if (SensorDistance() < 20) {
       break;
     }
     delay(100);
   }
+
+  for (pos = 90; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    neck.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(10);                       // waits 15ms for the servo to reach the position
+  }
+  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+    neck.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(10);                       // waits 15ms for the servo to reach the position
+  }
+  for (pos = 0; pos <= 90; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    neck.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(10);                       // waits 15ms for the servo to reach the position
+  }
+
 }
 
 void loop() {
