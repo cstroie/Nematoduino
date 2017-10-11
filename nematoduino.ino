@@ -324,6 +324,11 @@ void loop() {
     PingNeuron(N_OLQDR);
     PingNeuron(N_OLQVR);
     PingNeuron(N_OLQVL);
+
+    PingNeuron(N_IL1L);
+    PingNeuron(N_IL1R);
+    PingNeuron(N_IL1DL);
+    PingNeuron(N_IL1DR);
   }
   else {
     // Status LED off
@@ -337,6 +342,17 @@ void loop() {
     PingNeuron(N_ASIR);
     PingNeuron(N_ASJR);
     PingNeuron(N_ASJL);
+
+    PingNeuron(N_AWCL);
+    PingNeuron(N_AWCR);
+    PingNeuron(N_AWAL);
+    PingNeuron(N_AWAR);
   }
+
+  /* TODO
+    Left touch sensors: PLML, PVDL, PDEL, PVM and LUAL.
+    Right touch sensors: PLMR, PVDR, PDER, PVM and LUAR.
+  */
+
   NeuralCycle();
 }
