@@ -39,7 +39,6 @@
 #include "muscles.h"
 
 #include "status_led.h"
-#include "button.h"
 
 //
 // Global constants
@@ -320,8 +319,6 @@ void setup() {
   SensorInit();
   // Initialize status LED
   StatusLedInit();
-  // Initialize button
-  ButtonInit();
 
   // Loop until something moves ahead
   while (SensorDistance() > 20) delay(100);
