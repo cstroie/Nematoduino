@@ -34,9 +34,7 @@
 #include "motors.h"
 #include "sensor.h"
 
-#include "defines.h"
-#include "neural_rom.h"
-#include "muscles.h"
+#include "neuro.h"
 
 //
 // Global constants
