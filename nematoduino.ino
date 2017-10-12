@@ -1,3 +1,34 @@
+/**
+  Nematoduino - Arduino UNO-compatible robotic simulation of the C. elegans nematode
+
+  Copyright 2017 Nathan Griffith <nategri@gmail.com>
+  Copyright 2017 Costin STROIE <costinstroie@eridu.eu.org>
+
+  This file is part of Nematoduino.
+
+  Nematoduino is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by the Free
+  Software Foundation, either version 3 of the License, or (at your option) any
+  later version.
+
+  Nematoduino is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU General Public License along with
+  Nematoduino.  If not, see <http://www.gnu.org/licenses/>.
+
+  Nematoduino is an Arduino UNO-compatible robotic simulation of the C. elegans nematode.
+  At the core of the simulation is a spiking neural network incorporating 300 neuron cells
+  of the biological worm's connectome, along with associated muscle cells.
+*/
+
+
+// User settings
+#include "UserSettings.h"
+
+
 #include <avr/pgmspace.h>
 
 #include "motors.h"
@@ -46,6 +77,14 @@ int16_t* NextMuscleState = malloc((N_NTOTAL - N_MAX) * sizeof(int16_t));
 
 // Final set to track how many cycles a neuron has been idle
 uint8_t* IdleCycles = malloc(N_MAX*sizeof(uint8_t));
+
+// Neuro cycle time
+const unsigned long neuroDelay    = 50UL; // Delay between neuro cycles
+unsigned long       neuroNextTime = 0UL;  // Time of next neuro cycle
+
+// Sensors
+int16_t       snsFront;                   // Front sensor distance
+const int16_t snsFrontThreshold = 40;     // Threshold for front sensor activation (cm)
 
 //
 // Functions for getting and setting these states
@@ -260,7 +299,6 @@ void ActivateMuscles() {
   // Magic number read off from c_matoduino simulation
   if (MotorNeuronAvg < 60) RunMotors(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
   else                     RunMotors( RightMotorAvg,  LeftMotorAvg); //RunMotors( rightTotal,  leftTotal);
-  delay(50);
 }
 
 //
@@ -286,74 +324,82 @@ void setup() {
   ButtonInit();
 
   // Loop until something moves ahead
-  while(true) {
-    if(SensorDistance() < 20) {
-      break;
-    }
-    delay(100);
-  }
+  while (SensorDistance() > 20) delay(100);
+
+  // Start the neuro timer
+  neuroNextTime = millis();
 }
 
 void loop() {
   //static unsigned long noseTimeout = 5000UL;
-  // put your main code here, to run repeatedly:
-  int16_t dist = SensorDistance();
 
-  /*
-    if (millis() > noseTimeout) {
-      if (dist == 100)
-        dist = 10;
-      else if (dist == 10)
-        dist = 1000;
-      else
-        dist = 100;
-      noseTimeout += 5000UL;
+  // Neuro cycle
+  if (millis() >= neuroNextTime) {
+    // Repeat neuro cycle
+    neuroNextTime += neuroDelay;
+
+
+    // put your main code here, to run repeatedly:
+    snsFront = SensorDistance();
+
+    /*
+      if (millis() > noseTimeout) {
+        if (dist == 100)
+          dist = 10;
+        else if (dist == 10)
+          dist = 1000;
+        else
+          dist = 100;
+        noseTimeout += 5000UL;
+      }
+    */
+
+    // Check if the sensor should activate
+    if (snsFront < snsFrontThreshold) {
+      // Status LED on
+      StatusLedOn();
+      // Nose touch neurons
+      PingNeuron(N_FLPR);
+      PingNeuron(N_FLPL);
+      PingNeuron(N_ASHL);
+      PingNeuron(N_ASHR);
+      PingNeuron(N_IL1VL);
+      PingNeuron(N_IL1VR);
+      PingNeuron(N_OLQDL);
+      PingNeuron(N_OLQDR);
+      PingNeuron(N_OLQVR);
+      PingNeuron(N_OLQVL);
+
+      PingNeuron(N_IL1L);
+      PingNeuron(N_IL1R);
+      PingNeuron(N_IL1DL);
+      PingNeuron(N_IL1DR);
     }
-  */
+    else {
+      // Status LED off
+      StatusLedOff();
+      // Chemotaxis neurons
+      PingNeuron(N_ADFL);
+      PingNeuron(N_ADFR);
+      PingNeuron(N_ASGR);
+      PingNeuron(N_ASGL);
+      PingNeuron(N_ASIL);
+      PingNeuron(N_ASIR);
+      PingNeuron(N_ASJR);
+      PingNeuron(N_ASJL);
 
-  if (dist < 40) {
-    // Status LED on
-    StatusLedOn();
-    // Nose touch neurons
-    PingNeuron(N_FLPR);
-    PingNeuron(N_FLPL);
-    PingNeuron(N_ASHL);
-    PingNeuron(N_ASHR);
-    PingNeuron(N_IL1VL);
-    PingNeuron(N_IL1VR);
-    PingNeuron(N_OLQDL);
-    PingNeuron(N_OLQDR);
-    PingNeuron(N_OLQVR);
-    PingNeuron(N_OLQVL);
+      PingNeuron(N_AWCL);
+      PingNeuron(N_AWCR);
+      PingNeuron(N_AWAL);
+      PingNeuron(N_AWAR);
+    }
 
-    PingNeuron(N_IL1L);
-    PingNeuron(N_IL1R);
-    PingNeuron(N_IL1DL);
-    PingNeuron(N_IL1DR);
+    /* TODO
+      Left touch sensors: PLML, PVDL, PDEL, PVM and LUAL.
+      Right touch sensors: PLMR, PVDR, PDER, PVM and LUAR.
+    */
+
+    // Run the neuro cycle
+    NeuralCycle();
   }
-  else {
-    // Status LED off
-    StatusLedOff();
-    // Chemotaxis neurons
-    PingNeuron(N_ADFL);
-    PingNeuron(N_ADFR);
-    PingNeuron(N_ASGR);
-    PingNeuron(N_ASGL);
-    PingNeuron(N_ASIL);
-    PingNeuron(N_ASIR);
-    PingNeuron(N_ASJR);
-    PingNeuron(N_ASJL);
-
-    PingNeuron(N_AWCL);
-    PingNeuron(N_AWCR);
-    PingNeuron(N_AWAL);
-    PingNeuron(N_AWAR);
-  }
-
-  /* TODO
-    Left touch sensors: PLML, PVDL, PDEL, PVM and LUAL.
-    Right touch sensors: PLMR, PVDR, PDER, PVM and LUAR.
-  */
-
-  NeuralCycle();
 }
