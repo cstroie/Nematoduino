@@ -30,11 +30,16 @@
 
 
 #include <avr/pgmspace.h>
-
-#include "motors.h"
-#include "sensor.h"
-
+#include "pin_config.h"
 #include "neuro.h"
+
+
+#include "Sonar.h"
+#include "Motor.h"
+
+Sonar sonar(pinTrigger, pinEcho, 100);
+Motor motors(3, 4, MOTOR34_1KHZ);
+
 
 //
 // Global constants
@@ -292,8 +297,8 @@ void ActivateMuscles() {
 
 
   // Magic number read off from c_matoduino simulation
-  if (MotorNeuronAvg < 60) RunMotors(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
-  else                     RunMotors( RightMotorAvg,  LeftMotorAvg); //RunMotors( rightTotal,  leftTotal);
+  if (MotorNeuronAvg < 60) motors.run(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
+  else                     motors.run( RightMotorAvg,  LeftMotorAvg); //RunMotors( rightTotal,  leftTotal);
 }
 
 //
@@ -301,23 +306,18 @@ void ActivateMuscles() {
 //
 
 void setup() {
-  // put your setup code here, to run once:
-
-  // Uncomment for serial debugging
+  // Serial debug
   Serial.begin(115200);
-  //Serial.println(F("Nematoduino"));
 
   // Initialize state arrays
   StatesInit();
-  // Initialize the motors
-  MotorsInit();
-  // Initialize the sensor
-  SensorInit();
   // Initialize status LED
   pinMode(statusPin, OUTPUT);
 
+#ifndef DEVEL
   // Loop until something moves ahead
-  while (SensorDistance() > 20) delay(100);
+  while (sonar.echo() > 20) delay(100);
+#endif
 
   // Start the neuro timer
   neuroNextTime = millis();
@@ -333,7 +333,7 @@ void loop() {
 
 
     // put your main code here, to run repeatedly:
-    snsFront = SensorDistance();
+    snsFront = sonar.echo();
 
     /*
       if (millis() > noseTimeout) {
