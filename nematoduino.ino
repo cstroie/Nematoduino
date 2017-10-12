@@ -38,8 +38,6 @@
 #include "neural_rom.h"
 #include "muscles.h"
 
-#include "status_led.h"
-
 //
 // Global constants
 //
@@ -318,7 +316,7 @@ void setup() {
   // Initialize the sensor
   SensorInit();
   // Initialize status LED
-  StatusLedInit();
+  pinMode(statusPin, OUTPUT);
 
   // Loop until something moves ahead
   while (SensorDistance() > 20) delay(100);
@@ -354,7 +352,7 @@ void loop() {
     // Check if the sensor should activate
     if (snsFront < snsFrontThreshold) {
       // Status LED on
-      StatusLedOn();
+      digitalWrite(statusPin, HIGH);
       // Nose touch neurons
       PingNeuron(N_FLPR);
       PingNeuron(N_FLPL);
@@ -374,7 +372,7 @@ void loop() {
     }
     else {
       // Status LED off
-      StatusLedOff();
+      digitalWrite(statusPin, LOW);
       // Chemotaxis neurons
       PingNeuron(N_ADFL);
       PingNeuron(N_ADFR);
