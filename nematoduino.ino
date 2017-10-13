@@ -31,37 +31,22 @@
 
 #include <avr/pgmspace.h>
 #include "pin_config.h"
-#include "neuro.h"
 
-
+#include "Neurons.h"
+#include "NeuNet.h"
 #include "Sonar.h"
 #include "Motor.h"
 
 Sonar sonar(pinTrigger, pinEcho, 100);
 Motor motors(3, 4, MOTOR34_1KHZ);
 
+NeuNet neunet;
 
-//
-// Global constants
-//
-
-// Total number of connected neurons (first word in ROM)
-uint16_t const N_MAX = (uint16_t)NeuralROM[0];
-
-// Running average of activity for 'significant' motor neurons
+/* Running average of activity for 'significant' motor neurons */
 int16_t MotorNeuronAvg = 0;
 int16_t RightMotorAvg = 0;
 int16_t LeftMotorAvg = 0;
 
-//
-// Structs
-//
-
-// Struct for representing a neuron connection
-struct NeuralConnection {
-  uint16_t id;
-  int8_t weight;
-};
 
 //
 // Three sets of neural state arrays
@@ -142,7 +127,7 @@ void CopyStates() {
 //
 
 // Parse a word of the ROM into a neuron id and connection weight
-NeuralConnection ParseROM(uint16_t romWord) {
+neuroConnection ParseROM(uint16_t romWord) {
   uint8_t* romByte;
   romByte = (uint8_t*)&romWord;
 
@@ -155,16 +140,16 @@ NeuralConnection ParseROM(uint16_t romWord) {
   int8_t weight = (int8_t)weightBits;
 
   // Return one struct
-  NeuralConnection neuralConn = {id, weight};
+  neuroConnection neuralConn = {id, weight};
   return neuralConn;
 }
 
 // Propagate each neuron connection weight into the next state
 void PingNeuron(uint16_t N_ID) {
-  uint16_t address = pgm_read_word_near(NeuralROM + N_ID + 1);
-  uint16_t len = pgm_read_word_near(NeuralROM + N_ID + 1 + 1) - pgm_read_word_near(NeuralROM + N_ID + 1);
+  uint16_t address = pgm_read_word_near(nrConnectome + N_ID + 1);
+  uint16_t len = pgm_read_word_near(nrConnectome + N_ID + 1 + 1) - pgm_read_word_near(nrConnectome + N_ID + 1);
   for (int i = 0; i < len; i++) {
-    NeuralConnection neuralConn = ParseROM(pgm_read_word_near(NeuralROM + address + i));
+    neuroConnection neuralConn = ParseROM(pgm_read_word_near(nrConnectome + address + i));
     AddToNextState(neuralConn.id, neuralConn.weight);
   }
 }
@@ -241,6 +226,8 @@ void ActivateMuscles() {
     SetNextState(leftId,  0);
     SetNextState(rightId, 0);
   }
+
+#ifdef DEVEL
   /*
     Serial.print(leftNeckTotal);
     Serial.print(",");
@@ -248,6 +235,7 @@ void ActivateMuscles() {
     Serial.print(",");
   */
   //Serial.println(bodyTotal);
+#endif
 
   //int16_t normBodyTotal = 255.0 * ((float) bodyTotal) / 600.0;
 
@@ -281,6 +269,7 @@ void ActivateMuscles() {
   RightMotorAvg  = (12 * RightMotorAvg + (20 * rightNeckTotal) + bodyTotal) / 15;
   LeftMotorAvg  =  (12 * LeftMotorAvg +  (20 * leftNeckTotal)  + bodyTotal) / 15;
 
+#ifdef DEVEL
 
   //Serial.print(motorNeuronBSum);
   //Serial.print(",");
@@ -294,7 +283,7 @@ void ActivateMuscles() {
   //Serial.print(",");
   Serial.println(MotorNeuronAvg);
 
-
+#endif
 
   // Magic number read off from c_matoduino simulation
   if (MotorNeuronAvg < 60) motors.run(-RightMotorAvg, -LeftMotorAvg); //RunMotors(-rightTotal, -leftTotal);
@@ -308,6 +297,18 @@ void ActivateMuscles() {
 void setup() {
   // Serial debug
   Serial.begin(115200);
+
+#ifdef DEBUG
+  Serial.print(F("N_NTOTAL: "));
+  Serial.println(N_NTOTAL);
+  Serial.print(F("N_MAX: "));
+  Serial.println(N_MAX);
+#endif
+
+
+  /* Initialize the neural network */
+  neunet.init();
+
 
   // Initialize state arrays
   StatesInit();
@@ -324,7 +325,9 @@ void setup() {
 }
 
 void loop() {
-  //static unsigned long noseTimeout = 5000UL;
+#ifdef DEVEL
+  static unsigned long noseTimeout = 5000UL;
+#endif
 
   // Neuro cycle
   if (millis() >= neuroNextTime) {
@@ -332,20 +335,21 @@ void loop() {
     neuroNextTime += neuroDelay;
 
 
-    // put your main code here, to run repeatedly:
+#ifndef DEVEL
     snsFront = sonar.echo();
+#endif
 
-    /*
-      if (millis() > noseTimeout) {
-        if (dist == 100)
-          dist = 10;
-        else if (dist == 10)
-          dist = 1000;
-        else
-          dist = 100;
-        noseTimeout += 5000UL;
-      }
-    */
+#ifdef DEVEL
+    if (millis() > noseTimeout) {
+      if (snsFront == 100)
+        snsFront = 10;
+      else if (snsFront == 10)
+        snsFront = 1000;
+      else
+        snsFront = 100;
+      noseTimeout += 5000UL;
+    }
+#endif
 
     // Check if the sensor should activate
     if (snsFront < snsFrontThreshold) {
