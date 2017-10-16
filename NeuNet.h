@@ -12,6 +12,7 @@
 
 #include "Arduino.h"
 #include "Neurons.h"
+#include "Motor.h"
 
 // Struct for representing a neuron connection
 struct neuroConnection {
@@ -22,15 +23,20 @@ struct neuroConnection {
 
 class NeuNet {
   public:
-    NeuNet();
-    void init();
-    void setState(uint16_t id, int8_t value);
+    NeuNet(Motor* m);
+    void    init();
+    void    setState(uint16_t id, int8_t value);
     int16_t getState(uint16_t id);
-    void setStateNext(uint16_t id, int8_t value);
+    void    setStateNext(uint16_t id, int8_t value);
     int16_t getStateNext(uint16_t id);
-    void addStateNext(uint16_t id, int8_t value);
-    void copyState();
-
+    void    addStateNext(uint16_t id, int8_t value);
+    void    copyState();
+    neuroConnection parseROM(uint16_t romWord);
+    void    ping(uint16_t id);
+    void    discharge(uint16_t id);
+    void    cycle();
+    void    idle();
+    void    muscles();
   private:
     /* Neurons that are connected to others */
     int8_t * neuroState;
@@ -40,10 +46,12 @@ class NeuNet {
     int16_t * muscleStateNext;
     /* How many cycles a neuron has been idle */
     uint8_t * neuroIdle;
-
+    /* Running average of activity for 'significant' motor neurons */
+    int16_t avgMotoNeuron;
+    int16_t avgMotoRight;
+    int16_t avgMotoLeft;
+    /* Motors */
+    Motor * _motors;
 };
-
-
-
 
 #endif /* NEUNET_H */
