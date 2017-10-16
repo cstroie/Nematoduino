@@ -26,8 +26,8 @@ void NeuNet::init() {
   neuroIdle       = (uint8_t*)calloc(N_MAX, sizeof(uint8_t));
   /* Averages */
   avgMotoNeuron = 0;
-  avgMotoRight = 0;
-  avgMotoLeft = 0;
+  avgMotoRight  = 0;
+  avgMotoLeft   = 0;
 }
 
 void NeuNet::setState(uint16_t id, int8_t value) {
@@ -212,13 +212,13 @@ void NeuNet::muscles() {
   //Serial.print(",");
   //Serial.print(motorNeuronASum);
   //Serial.print(",");
-  Serial.print(LeftMotorAvg);
+  Serial.print(avgMotoLeft);
   Serial.print(",");
-  Serial.print(RightMotorAvg);
+  Serial.print(avgMotoRight);
   Serial.print(",");
   //Serial.print(bodyTotal);
   //Serial.print(",");
-  Serial.println(MotorNeuronAvg);
+  Serial.println(avgMotoNeuron);
 
 #endif
 

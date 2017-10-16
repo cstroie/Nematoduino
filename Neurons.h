@@ -885,8 +885,6 @@ const uint16_t PROGMEM nrConnectome[] = {
 uint16_t const N_MAX = (uint16_t)nrConnectome[0];
 
 
-
-
 /* Muscles */
 const uint16_t PROGMEM LeftNeckMuscles[] = {
   N_MDL05, N_MDL06, N_MDL07, N_MDL08, N_MVL05, N_MVL06, N_MVL07, N_MVL08
