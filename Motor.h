@@ -21,8 +21,8 @@ class Motor {
     uint8_t speedBoost;
     uint8_t turnTime;
   private:
-    AF_DCMotor * motL;
-    AF_DCMotor * motR;
+    AF_DCMotor motL;
+    AF_DCMotor motR;
 };
 
 #endif /* MOTOR_H */

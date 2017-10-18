@@ -164,14 +164,14 @@ void NeuNet::muscles() {
     setStateNext(rightId, 0);
   }
 
-#ifdef DEVEL
+#ifdef DEBUG
   /*
     Serial.print(leftNeckTotal);
     Serial.print(",");
     Serial.print(rightNeckTotal);
     Serial.print(",");
   */
-  //Serial.println(bodyTotal);
+  Serial.println(bodyTotal);
 #endif
 
   //int16_t normBodyTotal = 255.0 * ((float) bodyTotal) / 600.0;
@@ -206,8 +206,7 @@ void NeuNet::muscles() {
   avgMotoRight  = (12 * avgMotoRight + (20 * rightNeckTotal) + bodyTotal) / 15;
   avgMotoLeft  =  (12 * avgMotoLeft +  (20 * leftNeckTotal)  + bodyTotal) / 15;
 
-#ifdef DEVEL
-
+#ifdef DEBUG
   //Serial.print(motorNeuronBSum);
   //Serial.print(",");
   //Serial.print(motorNeuronASum);

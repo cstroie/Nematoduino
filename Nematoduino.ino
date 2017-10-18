@@ -79,6 +79,8 @@ void setup() {
 
   // Start the neuro timer
   neuroNextTime = millis();
+
+  //motors.run(200, 200);
 }
 
 /**
@@ -109,6 +111,11 @@ void loop() {
       noseTimeout += 5000UL;
     }
 #endif
+
+#ifdef DEBUG
+  //Serial.println(snsFront);
+#endif
+
 
     // Check if the sensor should activate
     if (snsFront < snsFrontThreshold) {

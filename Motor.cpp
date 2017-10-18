@@ -10,7 +10,7 @@
 #include "Arduino.h"
 #include "Motor.h"
 
-Motor::Motor(uint8_t leftMotor, uint8_t rightMotor, uint8_t prescaler = MOTOR34_1KHZ) : motR(leftMotor,  prescaler), motL(rightMotor, prescaler) {
+Motor::Motor(uint8_t leftMotor, uint8_t rightMotor, uint8_t prescaler = MOTOR34_1KHZ) : motL{leftMotor,  prescaler}, motR{rightMotor, prescaler} {
 }
 
 void Motor::run(int16_t leftSpeed, int16_t rightSpeed) {
@@ -21,40 +21,40 @@ void Motor::run(int16_t leftSpeed, int16_t rightSpeed) {
     leftSpeed += speedBoost;
     if (leftSpeed > 255)  speed = 255;
     else                  speed = leftSpeed;
-    motL->run(FORWARD);
-    motL->setSpeed(speed);
+    motL.run(FORWARD);
+    motL.setSpeed(speed);
   }
   // Left backward
   else if (leftSpeed < 0) {
     leftSpeed -= speedBoost;
     if (abs(leftSpeed) > 255) speed = 255;
     else                      speed = abs(leftSpeed);
-    motL->run(BACKWARD);
-    motL->setSpeed(speed);
+    motL.run(BACKWARD);
+    motL.setSpeed(speed);
   }
   // Left stop
   else
-    motL->run(RELEASE);
+    motL.run(RELEASE);
 
   // Right forward
   if (rightSpeed > 0) {
     rightSpeed += speedBoost;
     if (rightSpeed > 255) speed = 255;
     else                  speed = rightSpeed;
-    motR->run(FORWARD);
-    motR->setSpeed(speed);
+    motR.run(FORWARD);
+    motR.setSpeed(speed);
   }
   // Right backward
   else if (rightSpeed < 0) {
     rightSpeed -= speedBoost;
     if (abs(rightSpeed) > 255)  speed = 255;
     else                        speed = abs(rightSpeed);
-    motR->run(BACKWARD);
-    motR->setSpeed(speed);
+    motR.run(BACKWARD);
+    motR.setSpeed(speed);
   }
   // Right stop
   else
-    motR->run(RELEASE);
+    motR.run(RELEASE);
 
   // Turning
   if ((turnTime > 0) and
@@ -64,7 +64,7 @@ void Motor::run(int16_t leftSpeed, int16_t rightSpeed) {
 }
 
 void Motor::off() {
-  motL->run(RELEASE);
-  motR->run(RELEASE);
+  motL.run(RELEASE);
+  motR.run(RELEASE);
 }
 
